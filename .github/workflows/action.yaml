@@ -19,7 +19,7 @@ jobs:
     
     # AWS認証情報へのアクセス権限
     permissions:
-      id-token: write  # OIDC認証用（推奨）
+      id-token: write  # OIDC認証用（推奨）s
       contents: read
     
     steps:
