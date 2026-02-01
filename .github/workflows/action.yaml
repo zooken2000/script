@@ -28,6 +28,14 @@ jobs:  # ← 1回だけ
           python -m pip install --upgrade pip
           pip install boto3
       
+      - name: Debug - Check Secret
+        run: |
+          if [ -z "${{ secrets.AWS_ROLE_ARN }}" ]; then
+            echo "AWS_ROLE_ARN is empty!"
+          else
+            echo "AWS_ROLE_ARN is set: ${{ secrets.AWS_ROLE_ARN }}"
+          fi
+
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
