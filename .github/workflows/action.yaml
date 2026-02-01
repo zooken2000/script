@@ -1,17 +1,25 @@
 name: AWS VPC Information Retrieval
 
-on:  # ← 1回だけ
+on:
+  # 手動実行を有効化
   workflow_dispatch:
+  
+  # プッシュ時に実行
   push:
     branches:
       - main
+  
+  # スケジュール実行（オプション - 毎日午前9時JST）
+  # schedule:
+  #   - cron: '0 0 * * *'  # UTC 0:00 = JST 9:00
 
-jobs:  # ← 1回だけ
+jobs:
   describe-vpc:
     runs-on: ubuntu-latest
     
+    # AWS認証情報へのアクセス権限
     permissions:
-      id-token: write
+      id-token: write  # OIDC認証用（推奨）
       contents: read
     
     steps:
@@ -28,19 +36,21 @@ jobs:  # ← 1回だけ
           python -m pip install --upgrade pip
           pip install boto3
       
-      - name: Debug - Check Secret
-        run: |
-          if [ -z "${{ secrets.AWS_ROLE_ARN }}" ]; then
-            echo "AWS_ROLE_ARN is empty!"
-          else
-            echo "AWS_ROLE_ARN is set: ${{ secrets.AWS_ROLE_ARN }}"
-          fi
-
+      # OIDC認証を使用
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ap-northeast-1
+          audience: sts.amazonaws.com
+      
+      # 方法2: アクセスキーを使用（OIDCが使えない場合）
+      # - name: Configure AWS credentials (Access Key)
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ap-northeast-1
       
       - name: Run VPC describe script
         run: python vpc_describe.py

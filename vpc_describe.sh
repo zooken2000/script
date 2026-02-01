@@ -1,72 +1,48 @@
-import boto3
-import json
-from datetime import datetime
+#!/bin/bash
 
-def describe_vpcs():
-    """東京リージョンのVPC情報を取得して表示"""
-    
-    # 東京リージョンのEC2クライアントを作成
-    region = 'ap-northeast-1'
-    ec2 = boto3.client('ec2', region_name=region)
-    
-    try:
-        # VPC情報を取得
-        response = ec2.describe_vpcs()
-        
-        print(f"=" * 80)
-        print(f"AWS VPC情報 - リージョン: {region}")
-        print(f"取得日時: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"=" * 80)
-        print()
-        
-        vpcs = response.get('Vpcs', [])
-        
-        if not vpcs:
-            print("VPCが見つかりませんでした。")
-            return
-        
-        print(f"VPC数: {len(vpcs)}")
-        print()
-        
-        # 各VPCの詳細を表示
-        for i, vpc in enumerate(vpcs, 1):
-            print(f"--- VPC {i} ---")
-            print(f"VPC ID: {vpc['VpcId']}")
-            print(f"CIDR Block: {vpc['CidrBlock']}")
-            print(f"State: {vpc['State']}")
-            print(f"Is Default: {vpc.get('IsDefault', False)}")
-            
-            # タグ情報を表示
-            tags = vpc.get('Tags', [])
-            if tags:
-                print("Tags:")
-                for tag in tags:
-                    print(f"  - {tag['Key']}: {tag['Value']}")
-            else:
-                print("Tags: なし")
-            
-            # その他の属性
-            print(f"DHCP Options ID: {vpc.get('DhcpOptionsId', 'N/A')}")
-            print(f"Instance Tenancy: {vpc.get('InstanceTenancy', 'N/A')}")
-            
-            # IPv6 CIDR Block
-            ipv6_blocks = vpc.get('Ipv6CidrBlockAssociationSet', [])
-            if ipv6_blocks:
-                print("IPv6 CIDR Blocks:")
-                for block in ipv6_blocks:
-                    print(f"  - {block.get('Ipv6CidrBlock', 'N/A')} (State: {block.get('Ipv6CidrBlockState', {}).get('State', 'N/A')})")
-            
-            print()
-        
-        # JSON形式でも出力
-        print("=" * 80)
-        print("詳細情報 (JSON形式)")
-        print("=" * 80)
-        print(json.dumps(response, indent=2, default=str, ensure_ascii=False))
-        
-    except Exception as e:
-        print(f"エラーが発生しました: {str(e)}")
-        print("AWS認証情報が正しく設定されているか確認してください。")
+# VPC情報取得スクリプト（東京リージョン）
 
-if __name__ == "__main__":
-    describe_vpcs()
+REGION="ap-northeast-1"
+
+echo "================================================================================"
+echo "AWS VPC情報 - リージョン: ${REGION}"
+echo "取得日時: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "================================================================================"
+echo
+
+# VPC情報を取得
+echo "VPC一覧を取得中..."
+VPC_DATA=$(aws ec2 describe-vpcs --region ${REGION} --output json)
+
+# VPC数を取得
+VPC_COUNT=$(echo "${VPC_DATA}" | jq '.Vpcs | length')
+
+if [ "${VPC_COUNT}" -eq 0 ]; then
+    echo "VPCが見つかりませんでした。"
+    exit 0
+fi
+
+echo "VPC数: ${VPC_COUNT}"
+echo
+
+# 各VPCの詳細を表示
+echo "${VPC_DATA}" | jq -r '.Vpcs[] | 
+"--- VPC ---
+VPC ID: \(.VpcId)
+CIDR Block: \(.CidrBlock)
+State: \(.State)
+Is Default: \(.IsDefault)
+DHCP Options ID: \(.DhcpOptionsId)
+Instance Tenancy: \(.InstanceTenancy)
+Tags: \(if .Tags then (.Tags | map("\(.Key): \(.Value)") | join(", ")) else "なし" end)
+"'
+
+echo "================================================================================"
+echo "詳細情報 (JSON形式)"
+echo "================================================================================"
+echo "${VPC_DATA}" | jq '.'
+
+# JSON出力をファイルに保存
+echo "${VPC_DATA}" | jq '.' > vpc_info.json
+echo
+echo "VPC情報を vpc_info.json に保存しました。"
