@@ -52,15 +52,13 @@ jobs:
       #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       #     aws-region: ap-northeast-1
       
-      - name: Run VPC describe script
-        run: python vpc_describe.py
-      
-      - name: Upload results as artifact
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: vpc-info-${{ github.run_number }}
-          path: |
-            *.json
-            *.log
-          retention-days: 30
+    - name: Configure AWS credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ap-northeast-1
+
+    - name: Run VPC describe script
+      run: |
+        chmod +x vpc_describe.sh
+        ./vpc_describe.sh
