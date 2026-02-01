@@ -58,7 +58,7 @@ def describe_vpcs():
             
             print()
         
-        # JSON形式でも出力
+        # JSON形式でも出力s
         print("=" * 80)
         print("詳細情報 (JSON形式)")
         print("=" * 80)
