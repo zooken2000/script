@@ -26,39 +26,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install boto3
-      
-      # OIDC認証を使用
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ap-northeast-1
-          audience: sts.amazonaws.com
       
-      # 方法2: アクセスキーを使用（OIDCが使えない場合）
-      # - name: Configure AWS credentials (Access Key)
-      #   uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     aws-region: ap-northeast-1
+      - name: Run VPC describe script
+        run: |
+          chmod +x vpc_describe.sh
+          ./vpc_describe.sh
       
-    - name: Configure AWS credentials (OIDC)
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-        aws-region: ap-northeast-1
-
-    - name: Run VPC describe script
-      run: |
-        chmod +x vpc_describe.sh
-        ./vpc_describe.sh
+      - name: Upload results as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vpc-info-${{ github.run_number }}
+          path: |
+            *.json
+            *.log
+          retention-days: 30
